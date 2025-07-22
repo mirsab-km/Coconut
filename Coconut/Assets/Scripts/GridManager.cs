@@ -1,53 +1,47 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 public class GridManager : MonoBehaviour
 {
     public GameObject cardPrefab;
     public Transform gridParent;
+    public Sprite[] fruitSprites;
     public int rows = 2;
     public int columns = 2;
 
-    private void Start()
-    {
-        GenerateGrid();
-    }
-
-    void GenerateGrid()
+    void Start()
     {
         int totalCards = rows * columns;
 
-        // Just using temp matching logic (0, 0, 1, 1, 2, 2, ...)
-        List<int> cardIDs = new List<int>();
+        // STEP 1: Create sprite+ID pairs
+        List<(Sprite, int)> cardData = new List<(Sprite, int)>();
+
         for (int i = 0; i < totalCards / 2; i++)
         {
-            cardIDs.Add(i);
-            cardIDs.Add(i); // matching pair
+            cardData.Add((fruitSprites[i], i)); // first copy
+            cardData.Add((fruitSprites[i], i)); // second copy (matching)
         }
 
-        // Shuffle the list
-        for (int i = 0; i < cardIDs.Count; i++)
+        // STEP 2: Shuffle the cardData list
+        for (int i = 0; i < cardData.Count; i++)
         {
-            int temp = cardIDs[i];
-            int randomIndex = Random.Range(i, cardIDs.Count);
-            cardIDs[i] = cardIDs[randomIndex];
-            cardIDs[randomIndex] = temp;
+            int rand = Random.Range(i, cardData.Count);
+            (cardData[i], cardData[rand]) = (cardData[rand], cardData[i]);
         }
 
-        // Create cards
+        // STEP 3: Setup GridLayout
+        GridLayoutGroup grid = gridParent.GetComponent<GridLayoutGroup>();
+        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        grid.constraintCount = columns;
+        grid.cellSize = new Vector2(100, 100); // default size
+
+        // STEP 4: Instantiate cards
         for (int i = 0; i < totalCards; i++)
         {
-            GameObject card = Instantiate(cardPrefab, gridParent);
-            card.name = "Card_" + i;
-
-            // TODO: Assign card ID to each card (used for matching)
-            card.GetComponent<Card>().cardID = cardIDs[i];
+            GameObject cardObj = Instantiate(cardPrefab, gridParent);
+            Card card = cardObj.GetComponent<Card>();
+            card.Setup(cardData[i].Item1, cardData[i].Item2); // Sprite + ID
         }
-
-        // Set layout constraint
-        GridLayoutGroup layout = gridParent.GetComponent<GridLayoutGroup>();
-        layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-        layout.constraintCount = columns;
     }
 }
